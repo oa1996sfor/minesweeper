@@ -98,7 +98,7 @@ function renderBoard() {
             //   var className = (cell) ? 'occupied' : '';
             // var cell = gBoard[i][j];
             var className = 'cell cell' + i + '-' + j;
-            strHtml += `<td class="${className}"  onclick="cellClicked(this,${i},${j})" onmouseover="cellMarked(this)"></td>`
+            strHtml += `<td class="${className}"  onclick="cellClicked(this,${i},${j})" onmouseover="cellMarked(this,${i},${j})"></td>`
         }
         strHtml += '</tr>'
     }
@@ -195,7 +195,7 @@ function isValidNegs(i, j) {
 function cellClicked(elCell, i, j) {
     if (gGame.isOn) {
         if (!isFirstTime) {
-            if (gBoard[i][j].isMine) {
+            if (gBoard[i][j].isMine && elCell.style.backgroundColor !== OCCUPIED) {
                 steppedOnMine = true;
                 checkGameOver();
             }
@@ -233,41 +233,62 @@ function firstCellClicked(clickedI, clickedJ) {
 }
 
 
-function cellMarked(elCell) {
+function cellMarked(elCell, rowIdx, colIdx) {
     elCell.addEventListener("contextmenu", e => e.preventDefault());
     window.oncontextmenu = function () {
         if (elCell.style.backgroundColor !== OCCUPIED) {
             if (elCell.innerHTML === '') {
                 elCell.innerHTML = FLAG;
+                if (gBoard[rowIdx][colIdx].isMine && (!gBoard[rowIdx][colIdx].isMarked)) {
+                    gGame.markedCount++;
+                    gBoard[rowIdx][colIdx].isMarked = true;
+                    checkGameOver();
+                }
             }
             else if (elCell.innerHTML === FLAG) {
                 elCell.innerHTML = '';
             }
         }
     }
+
 }
 
 function checkGameOver() {
 
     if (steppedOnMine) {
         lose();
-
     }
+    else checkWin();
 
 
 
-    clearInterval(gCounterInterval);
+
+}
+
+function checkWin() {
+    if (gGame.markedCount === (gLevel.MINES - lifeCounter)) {
+        var elGameButton = document.querySelector('.gameButton');
+        elGameButton.innerHTML = WON;
+        //To.DO WINING!
+
+        //  clearSecs();
+    }
 }
 
 function lose() {
-    new Audio('sfx/explode.wav').play();
+    var elGameButton = document.querySelector('.gameButton');
     if (lifeCounter !== LIFES) {
         lifeCounter++;
+        steppedOnMine = false;
         updateLifes(LIFES - lifeCounter);
+        elGameButton.innerHTML = INJURED;
     }
-    if (lifeCounter === LIFES) {
+    if (lifeCounter === LIFES) { // or you lost!
         gGame.isOn = false;
-        
+        updateLifes(LIFES - lifeCounter);
+        elGameButton.innerHTML = DEAD;
+        clearInterval(gCounterInterval);
+        //game over!
     }
 
 
@@ -281,8 +302,7 @@ function easyGame(elBtn) {
     gLevel.MINES = 2;
     elBtn.style.backgroundColor = "yellow";
     // clearInterval(gInterval);
-    clearSecs();
-    initGame();
+    restartSettings();
 }
 
 function hardGame(elBtn) {
@@ -291,8 +311,7 @@ function hardGame(elBtn) {
     gLevel.MINES = 12;
     elBtn.style.backgroundColor = "yellow";
     // clearInterval(gInterval);
-    clearSecs();
-    initGame();
+    restartSettings();
 }
 
 function extremeGame(elBtn) {
@@ -301,6 +320,17 @@ function extremeGame(elBtn) {
     gLevel.MINES = 30;
     elBtn.style.backgroundColor = "yellow";
     // clearInterval(gInterval);
+    restartSettings();
+}
+
+function restartSettings() {
+    // gGame.isOn = true;
+    isFirstTime = true;
+    steppedOnMine = false;
+    lifeCounter = 0;
+    gGame.markedCount = 0;
+    var elGameButton = document.querySelector('.gameButton');
+    elGameButton.innerHTML = HAPPY;
     clearSecs();
     initGame();
 }
@@ -309,7 +339,6 @@ function clearDifficultiesHoover() {
     var elDifficulties = document.querySelectorAll('.difficulty');
     for (var i = 0; i < elDifficulties.length; i++) {
         elDifficulties[i].style.backgroundColor = "white";
-
     }
 }
 
@@ -317,6 +346,10 @@ function restartGame() {
     gGame.isOn = true;
     isFirstTime = true;
     steppedOnMine = false;
+    lifeCounter = 0;
+    gGame.markedCount = 0;
+    var elGameButton = document.querySelector('.gameButton');
+    elGameButton.innerHTML = HAPPY;
     clearDifficultiesHoover();
     startTime = new Date();
     clearSecs();
